@@ -27,7 +27,20 @@ jobs:
       - name: Test
         run: go test ./...
 
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+
       - name: Run linter
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
+        run: |
+          set -euo pipefail
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          export GOLANGCI_LINT_CACHE="${PWD}/.cache/golangci-lint"
+          mkdir -p "${GOLANGCI_LINT_CACHE}"
+
+          while IFS= read -r dir; do
+            echo "Running golangci-lint in ${dir}"
+            (
+              cd "${dir}"
+              golangci-lint run
+            )
+          done < <(go list -f '{{.Dir}}' ./... | sort -u)
