@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: user-service-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: user_service
+      POSTGRES_USER: user_service
+      POSTGRES_PASSWORD: user_service
+    ports:
+      - "${USER_SERVICE_POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - user-service-postgres-data:/var/lib/postgresql/data
+      - ../services/user-service/internal/adapters/repository/postgres/schema.sql:/docker-entrypoint-initdb.d/001-user-service-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_service -d user_service"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  user-service:
+    build:
+      context: ..
+      dockerfile: services/user-service/Dockerfile
+    container_name: user-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      USER_SERVICE_GRPC_PORT: 8081
+      USER_SERVICE_DB_URL: postgres://user_service:user_service@postgres:5432/user_service?sslmode=disable
+      USER_SERVICE_DB_MAX_OPEN_CONNS: 10
+      USER_SERVICE_DB_MIN_IDLE_CONNS: 2
+      USER_SERVICE_DB_MAX_CONN_LIFETIME: 1h
+      USER_SERVICE_DB_MAX_CONN_IDLE_TIME: 15m
+      USER_SERVICE_DB_HEALTH_CHECK_PERIOD: 1m
+      USER_SERVICE_DB_CONNECT_TIMEOUT: 10s
+      USER_SERVICE_BCRYPT_COST: 12
+      USER_SERVICE_JWT_ISSUER: ecommerce-user-service
+      USER_SERVICE_JWT_AUDIENCE: ecommerce-clients
+      USER_SERVICE_JWT_ACCESS_SECRET: 0123456789abcdef0123456789abcdef
+      USER_SERVICE_JWT_REFRESH_SECRET: abcdef0123456789abcdef0123456789
+      USER_SERVICE_JWT_VERIFICATION_SECRET: fedcba9876543210fedcba9876543210
+      USER_SERVICE_JWT_ACCESS_TTL: 15m
+      USER_SERVICE_JWT_REFRESH_TTL: 168h
+      USER_SERVICE_JWT_VERIFICATION_TTL: 24h
+      USER_SERVICE_SHUTDOWN_TIMEOUT: 15s
+    ports:
+      - "${USER_SERVICE_GRPC_HOST_PORT:-8081}:8081"
+
+volumes:
+  user-service-postgres-data:
