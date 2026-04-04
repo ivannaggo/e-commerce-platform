@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package ecommerce.product.v1;
+
+option go_package = "github.com/ivannaggo/e-commerce-platform/proto/gen/go/ecommerce/product/v1;productv1";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+service ProductService {
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (google.protobuf.Empty);
+
+  rpc CheckAvailability(CheckAvailabilityRequest) returns (CheckAvailabilityResponse);
+}
+
+enum ProductStatus {
+  PRODUCT_STATUS_UNSPECIFIED = 0;
+  PRODUCT_STATUS_ACTIVE = 1;
+  PRODUCT_STATUS_OUT_OF_STOCK = 2;
+  PRODUCT_STATUS_DISABLED = 3;
+}
+
+message Product {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  int64 price = 4;
+  int32 stock = 5;
+  string currency = 6;
+  ProductStatus status = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message Pagination {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message CreateProductRequest {
+  string name = 1;
+  string description = 2;
+  int64 price = 3;
+  int32 stock = 4;
+  string idempotency_key = 5;
+  string currency = 6;
+}
+
+message CreateProductResponse {
+  Product product = 1;
+}
+
+message GetProductRequest {
+  string product_id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+message ListProductsRequest {
+  Pagination pagination = 1;
+  string query = 2;
+  int64 min_price = 3;
+  int64 max_price = 4;
+  bool in_stock_only = 5;
+  ProductStatus status = 6;
+  string currency = 7;
+}
+
+message ListProductsResponse {
+  repeated Product products = 1;
+  string next_page_token = 2;
+}
+
+message UpdateProductRequest {
+  string product_id = 1;
+  google.protobuf.StringValue name = 2;
+  google.protobuf.StringValue description = 3;
+  google.protobuf.Int64Value price = 4;
+  google.protobuf.Int32Value stock = 5;
+  google.protobuf.StringValue currency = 6;
+  google.protobuf.Int32Value status = 7;
+  string idempotency_key = 8;
+}
+
+message UpdateProductResponse {
+  Product product = 1;
+}
+
+message DeleteProductRequest {
+  string product_id = 1;
+  string idempotency_key = 2;
+}
+
+message CheckAvailabilityRequest {
+  string product_id = 1;
+  int32 requested_quantity = 2;
+}
+
+message CheckAvailabilityResponse {
+  string product_id = 1;
+  bool available = 2;
+  int32 requested_quantity = 3;
+  int32 available_stock = 4;
+  int32 reserved_stock = 5;
+}
