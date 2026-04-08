@@ -212,7 +212,7 @@ func TestDeleteProductIdempotencyRace(t *testing.T) {
 				UpdatedAt: now.Add(-time.Minute),
 			}, nil
 		},
-		deleteFn: func(_ context.Context, params domain.DeleteProductParams) error {
+		deleteFn: func(_ context.Context, _ domain.DeleteProductParams) error {
 			mu.Lock()
 			deleteCallCount++
 			mu.Unlock()
@@ -256,7 +256,7 @@ func TestConcurrentListProducts(t *testing.T) {
 	t.Parallel()
 
 	repo := &productRepoStub{
-		listFn: func(_ context.Context, filter domain.ListProductsFilter) ([]*domain.Product, string, error) {
+		listFn: func(_ context.Context, _ domain.ListProductsFilter) ([]*domain.Product, string, error) {
 			time.Sleep(time.Millisecond * 5)
 			return []*domain.Product{
 				{ID: "p1", Name: "Product 1", Price: 100, Stock: 5, Currency: "USD", Status: productv1.ProductStatus_PRODUCT_STATUS_ACTIVE},

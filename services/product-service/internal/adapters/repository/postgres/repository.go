@@ -137,10 +137,7 @@ func (r *ProductRepository) Create(ctx context.Context, params domain.CreateProd
 
 	// Persist idempotency audit record (secondary — the real guard is the unique index).
 	if idempotencyKey != "" {
-		if _, insertErr := insertOperationMapping(ctx, tx, operationTypeCreate, idempotencyKey, product.ID, params.CreatedAt.UTC()); insertErr != nil {
-			// Non-fatal: the unique index already protects against duplicates.
-			// Log in production; we swallow the error here to avoid breaking the flow.
-		}
+		_, _ = insertOperationMapping(ctx, tx, operationTypeCreate, idempotencyKey, product.ID, params.CreatedAt.UTC())
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -390,9 +387,7 @@ func (r *ProductRepository) Update(ctx context.Context, params domain.UpdateProd
 
 	// Persist idotency audit record.
 	if idempotencyKey != "" {
-		if _, insertErr := insertOperationMapping(ctx, tx, operationTypeUpdate, idempotencyKey, product.ID, params.UpdatedAt.UTC()); insertErr != nil {
-			// Non-fatal: the unique index on products already guards.
-		}
+		_, _ = insertOperationMapping(ctx, tx, operationTypeUpdate, idempotencyKey, product.ID, params.UpdatedAt.UTC())
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -449,9 +444,7 @@ func (r *ProductRepository) Delete(ctx context.Context, params domain.DeleteProd
 	}
 
 	if idempotencyKey != "" {
-		if _, insertErr := insertOperationMapping(ctx, tx, operationTypeDelete, idempotencyKey, params.ID, params.UpdatedAt.UTC()); insertErr != nil {
-			// Non-fatal: the unique index guards.
-		}
+		_, _ = insertOperationMapping(ctx, tx, operationTypeDelete, idempotencyKey, params.ID, params.UpdatedAt.UTC())
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -533,17 +526,6 @@ func (r *ProductRepository) getByIDWithQuerier(ctx context.Context, q querier, p
 	return product, nil
 }
 
-func (r *ProductRepository) getProductByOperationKey(ctx context.Context, q querier, operation operationType, idempotencyKey string) (*domain.Product, error) {
-	productID, err := lookupOperationProductID(ctx, q, operation, idempotencyKey)
-	if err != nil {
-		return nil, err
-	}
-	if productID == "" {
-		return nil, domain.NewConflictError("idempotency key collision")
-	}
-	return r.getByIDWithQuerier(ctx, q, productID)
-}
-
 func scanProduct(scanner rowScanner) (*domain.Product, error) {
 	var (
 		product domain.Product
@@ -588,23 +570,6 @@ func scanAvailability(scanner rowScanner) (*domain.ProductAvailability, error) {
 
 	availability.Status = productv1.ProductStatus(status)
 	return &availability, nil
-}
-
-func lookupOperationProductID(ctx context.Context, q querier, operation operationType, idempotencyKey string) (string, error) {
-	var productID string
-	err := q.QueryRow(
-		ctx,
-		`SELECT product_id FROM product_operation_idempotency WHERE operation_type = $1 AND idempotency_key = $2`,
-		string(operation),
-		idempotencyKey,
-	).Scan(&productID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "", nil
-	}
-	if err != nil {
-		return "", domain.NewInternalError("failed to load product idempotency mapping", err)
-	}
-	return productID, nil
 }
 
 func insertOperationMapping(ctx context.Context, q querier, operation operationType, idempotencyKey, productID string, createdAt time.Time) (bool, error) {

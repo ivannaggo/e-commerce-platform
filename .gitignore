@@ -32,6 +32,9 @@ target/
 .vscode/
 .codex
 
+# Qwen Code internal
+.qwen/
+
 # Generated proto files should only live in proto/gen/go/
 # Do not commit .pb.go next to .proto sources
 proto/ecommerce/**/*.pb.go
