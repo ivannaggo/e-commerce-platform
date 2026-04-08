@@ -12,7 +12,7 @@ import (
 func TestManagerIssueAndParseRefreshToken(t *testing.T) {
 	t.Parallel()
 
-	now := time.Date(2026, 4, 1, 10, 0, 0, 0, time.UTC)
+	now := time.Now().UTC()
 	manager := newTestManager(t, now)
 
 	tokens, err := manager.IssueSessionTokens(domain.SessionTokenSubject{
@@ -37,7 +37,7 @@ func TestManagerIssueAndParseRefreshToken(t *testing.T) {
 func TestManagerVerifyEmailToken(t *testing.T) {
 	t.Parallel()
 
-	now := time.Date(2026, 4, 1, 10, 0, 0, 0, time.UTC)
+	now := time.Now().UTC()
 	manager := newTestManager(t, now)
 
 	token, _, err := manager.IssueEmailVerificationToken("user-id")
