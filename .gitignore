@@ -22,7 +22,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
-
+services/user-service/tests/loadtest/
 bin/
 obj/
 
@@ -31,3 +31,8 @@ target/
 .idea/
 .vscode/
 .codex
+
+# Generated proto files should only live in proto/gen/go/
+# Do not commit .pb.go next to .proto sources
+proto/ecommerce/**/*.pb.go
+proto/ecommerce/**/*_grpc.pb.go

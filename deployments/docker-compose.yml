@@ -51,5 +51,49 @@ services:
     ports:
       - "${USER_SERVICE_GRPC_HOST_PORT:-8081}:8081"
 
+  product-postgres:
+    image: postgres:16-alpine
+    container_name: product-service-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: product_service
+      POSTGRES_USER: product_service
+      POSTGRES_PASSWORD: product_service
+    ports:
+      - "${PRODUCT_SERVICE_POSTGRES_HOST_PORT:-5434}:5432"
+    volumes:
+      - product-service-postgres-data:/var/lib/postgresql/data
+      - ../services/product-service/internal/adapters/repository/postgres/schema.sql:/docker-entrypoint-initdb.d/001-product-service-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U product_service -d product_service"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  product-service:
+    build:
+      context: ..
+      dockerfile: services/product-service/Dockerfile
+    container_name: product-service
+    restart: unless-stopped
+    depends_on:
+      product-postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      PRODUCT_SERVICE_GRPC_PORT: 8082
+      PRODUCT_SERVICE_DB_URL: postgres://product_service:product_service@product-postgres:5432/product_service?sslmode=disable
+      PRODUCT_SERVICE_DB_MAX_OPEN_CONNS: 10
+      PRODUCT_SERVICE_DB_MIN_IDLE_CONNS: 2
+      PRODUCT_SERVICE_DB_MAX_CONN_LIFETIME: 1h
+      PRODUCT_SERVICE_DB_MAX_CONN_IDLE_TIME: 15m
+      PRODUCT_SERVICE_DB_HEALTH_CHECK_PERIOD: 1m
+      PRODUCT_SERVICE_DB_CONNECT_TIMEOUT: 10s
+      PRODUCT_SERVICE_SHUTDOWN_TIMEOUT: 15s
+    ports:
+      - "${PRODUCT_SERVICE_GRPC_HOST_PORT:-8082}:8082"
+
 volumes:
   user-service-postgres-data:
+  product-service-postgres-data:
