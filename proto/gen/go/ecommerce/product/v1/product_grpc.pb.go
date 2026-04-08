@@ -25,6 +25,8 @@ type ProductServiceClient interface {
 	UpdateProduct(ctx context.Context, in *UpdateProductRequest, opts ...grpc.CallOption) (*UpdateProductResponse, error)
 	DeleteProduct(ctx context.Context, in *DeleteProductRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	CheckAvailability(ctx context.Context, in *CheckAvailabilityRequest, opts ...grpc.CallOption) (*CheckAvailabilityResponse, error)
+	// HealthCheck returns service health status. Used by orchestrators for readiness/liveness probes.
+	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
 
 type productServiceClient struct {
@@ -89,6 +91,15 @@ func (c *productServiceClient) CheckAvailability(ctx context.Context, in *CheckA
 	return out, nil
 }
 
+func (c *productServiceClient) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
+	out := new(HealthCheckResponse)
+	err := c.cc.Invoke(ctx, "/ecommerce.product.v1.ProductService/HealthCheck", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProductServiceServer is the server API for ProductService service.
 // All implementations must embed UnimplementedProductServiceServer
 // for forward compatibility
@@ -99,6 +110,8 @@ type ProductServiceServer interface {
 	UpdateProduct(context.Context, *UpdateProductRequest) (*UpdateProductResponse, error)
 	DeleteProduct(context.Context, *DeleteProductRequest) (*emptypb.Empty, error)
 	CheckAvailability(context.Context, *CheckAvailabilityRequest) (*CheckAvailabilityResponse, error)
+	// HealthCheck returns service health status. Used by orchestrators for readiness/liveness probes.
+	HealthCheck(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
 	mustEmbedUnimplementedProductServiceServer()
 }
 
@@ -123,6 +136,9 @@ func (UnimplementedProductServiceServer) DeleteProduct(context.Context, *DeleteP
 }
 func (UnimplementedProductServiceServer) CheckAvailability(context.Context, *CheckAvailabilityRequest) (*CheckAvailabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckAvailability not implemented")
+}
+func (UnimplementedProductServiceServer) HealthCheck(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HealthCheck not implemented")
 }
 func (UnimplementedProductServiceServer) mustEmbedUnimplementedProductServiceServer() {}
 
@@ -245,6 +261,24 @@ func _ProductService_CheckAvailability_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProductService_HealthCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProductServiceServer).HealthCheck(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ecommerce.product.v1.ProductService/HealthCheck",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProductServiceServer).HealthCheck(ctx, req.(*HealthCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProductService_ServiceDesc is the grpc.ServiceDesc for ProductService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -276,7 +310,11 @@ var ProductService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "CheckAvailability",
 			Handler:    _ProductService_CheckAvailability_Handler,
 		},
+		{
+			MethodName: "HealthCheck",
+			Handler:    _ProductService_HealthCheck_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "ecommerce/product/v1/product.proto",
+	Metadata: "proto/ecommerce/product/v1/product.proto",
 }

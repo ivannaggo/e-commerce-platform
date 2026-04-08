@@ -17,6 +17,9 @@ service ProductService {
   rpc DeleteProduct(DeleteProductRequest) returns (google.protobuf.Empty);
 
   rpc CheckAvailability(CheckAvailabilityRequest) returns (CheckAvailabilityResponse);
+
+  // HealthCheck returns service health status. Used by orchestrators for readiness/liveness probes.
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
 }
 
 enum ProductStatus {
@@ -67,8 +70,8 @@ message GetProductResponse {
 message ListProductsRequest {
   Pagination pagination = 1;
   string query = 2;
-  int64 min_price = 3;
-  int64 max_price = 4;
+  google.protobuf.Int64Value min_price = 3;
+  google.protobuf.Int64Value max_price = 4;
   bool in_stock_only = 5;
   ProductStatus status = 6;
   string currency = 7;
@@ -110,4 +113,16 @@ message CheckAvailabilityResponse {
   int32 requested_quantity = 3;
   int32 available_stock = 4;
   int32 reserved_stock = 5;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  enum ServingStatus {
+    UNKNOWN = 0;
+    SERVING = 1;
+    NOT_SERVING = 2;
+    SERVICE_UNKNOWN = 3;
+  }
+  ServingStatus status = 1;
 }
